@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Pitch Visualizer</title>
+<style>
+  body { text-align: center; font-family: sans-serif; }
+  canvas { border: 1px solid #ccc; margin-top: 20px; }
+  button { margin: 10px; padding: 10px; }
+</style>
+</head>
+<body>
+
+<h2>音程ビジュアライザ</h2>
+
+<button id="calibrate">基準入力</button>
+<button id="start">スタート</button>
+
+<p id="status">待機中</p>
+
+<canvas id="canvas" width="300" height="300"></canvas>
+
+<script src="app.js"></script>
+</body>
+</html>
