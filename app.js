@@ -234,22 +234,36 @@ function update() {
 document.getElementById("calibrate").onclick = async () => {
   if (!audioContext) await initAudio();
 
+  // ★ 前回リセット
+  pitchBuffer = [];
+  referencePitch = null;
+
+  // ★ 既存interval停止
+  if (calibrateInterval) {
+    clearInterval(calibrateInterval);
+  }
+
   statusText.innerText = "基準音を入力中...";
 
   let samples = [];
-
   let count = 0;
-  let interval = setInterval(() => {
+
+  calibrateInterval = setInterval(() => {
     let p = getPitchFFT();
+
     if (p) {
       samples.push(p);
       count++;
     }
 
     if (count > 20) {
-      clearInterval(interval);
-      referencePitch = samples.reduce((a,b)=>a+b)/samples.length;
-      statusText.innerText = `基準: ${referencePitch.toFixed(1)} Hz`;
+      clearInterval(calibrateInterval);
+
+      referencePitch =
+        samples.reduce((a, b) => a + b, 0) / samples.length;
+
+      statusText.innerText =
+        `基準: ${referencePitch.toFixed(1)} Hz`;
     }
   }, 50);
 };
