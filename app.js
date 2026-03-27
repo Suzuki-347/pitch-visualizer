@@ -233,7 +233,11 @@ function update() {
 // 基準入力
 document.getElementById("calibrate").onclick = async () => {
   if (!audioContext) await initAudio();
-
+  
+  if (audioContext.state === "suspended") {
+    await audioContext.resume();
+  }
+  
   // ★ 前回リセット
   pitchBuffer = [];
   referencePitch = null;
@@ -271,6 +275,11 @@ document.getElementById("calibrate").onclick = async () => {
 // スタート
 document.getElementById("start").onclick = async () => {
   if (!audioContext) await initAudio();
+
+  // ★ これが超重要
+  if (audioContext.state === "suspended") {
+    await audioContext.resume();
+  }
 
   isRunning = true;
   update();
