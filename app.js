@@ -11,6 +11,7 @@ const ctx = canvas.getContext("2d");
 const statusText = document.getElementById("status");
 
 let figs = [];
+let calibrateInterval = null;
 
 function loadImages() {
   for (let i = 1; i <= 5; i++) {
@@ -32,7 +33,6 @@ async function initAudio() {
   microphone = audioContext.createMediaStreamSource(stream);
 
   analyser = audioContext.createAnalyser();
-  analyser.fftSize = 2048;
   analyser.fftSize = 4096;
   analyser.smoothingTimeConstant = 0.8;
 
@@ -187,7 +187,6 @@ function draw(color, diff, ratio) {
   ctx.arc(150, 150, 80, 0, Math.PI * 2);
   ctx.fill();
   ctx.globalAlpha = 0.7 + 0.3 * ratio;
-  ctx.globalAlpha = 1.0;
 
   // 顔選択
   let img = selectFace(diff, ratio);
@@ -195,6 +194,7 @@ function draw(color, diff, ratio) {
   if (img && img.complete) {
     ctx.drawImage(img, 70, 70, 160, 160);
   }
+  ctx.globalAlpha = 1.0;
 }
 
 // ループ
@@ -206,7 +206,7 @@ function update() {
   // ★ 無音除去（超重要）
   if (volume < 0.01) {
     statusText.innerText = "無音";
-    draw("gray");
+    draw("gray",0,0);
     requestAnimationFrame(update);
     return;
   }
