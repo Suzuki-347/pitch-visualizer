@@ -233,16 +233,14 @@ function update() {
 // 基準入力
 document.getElementById("calibrate").onclick = async () => {
   if (!audioContext) await initAudio();
-  
+
   if (audioContext.state === "suspended") {
     await audioContext.resume();
   }
-  
-  // ★ 前回リセット
+
   pitchBuffer = [];
   referencePitch = null;
 
-  // ★ 既存interval停止
   if (calibrateInterval) {
     clearInterval(calibrateInterval);
   }
@@ -250,18 +248,24 @@ document.getElementById("calibrate").onclick = async () => {
   statusText.innerText = "基準音を入力中...";
 
   let samples = [];
-  let count = 0;
+  let startTime = Date.now();
+
+  const CALIB_TIME = 1000; // 1秒
 
   calibrateInterval = setInterval(() => {
     let p = getPitchFFT();
 
     if (p) {
       samples.push(p);
-      count++;
     }
 
-    if (count > 20) {
+    if (Date.now() - startTime > CALIB_TIME) {
       clearInterval(calibrateInterval);
+
+      if (samples.length === 0) {
+        statusText.innerText = "音が検出できません";
+        return;
+      }
 
       referencePitch =
         samples.reduce((a, b) => a + b, 0) / samples.length;
@@ -281,6 +285,7 @@ document.getElementById("start").onclick = async () => {
     await audioContext.resume();
   }
 
+  console.log("AudioContext state:", audioContext.state);
   isRunning = true;
   update();
 };
