@@ -12,9 +12,10 @@ const statusText = document.getElementById("status");
 
 let figs = [];
 let calibrateInterval = null;
+const r = Math.pow(2, 1/12);
 
 function loadImages() {
-  for (let i = 1; i <= 5; i++) {
+  for (let i = 0; i <= 8; i++) {
     let img = new Image();
     img.src = `fig/fig${i}.png`;
     figs.push(img);
@@ -76,7 +77,7 @@ function getPitch() {
 }
 
 let pitchBuffer = [];
-const BUFFER_SIZE = 5;  // 平滑化
+const BUFFER_SIZE = 3;  // 平滑化
 
 // 音量（RMS）計算
 function getVolume() {
@@ -96,8 +97,8 @@ function getPitchFFT() {
 
   analyser.getByteFrequencyData(freqData);
 
-  let minFreq = 80;
-  let maxFreq = 780;
+  let minFreq = 20;
+  let maxFreq = 4000;
 
   let minIndex = Math.floor(minFreq * analyser.fftSize / audioContext.sampleRate);
   let maxIndexLimit = Math.floor(maxFreq * analyser.fftSize / audioContext.sampleRate);
@@ -142,15 +143,10 @@ function smoothPitch(pitch) {
 }
 
 // 色計算
-function getColor(diff) {
-  // diff: Hz差
-  let maxDiff = 150;
-
-  if (Math.abs(diff) < 5) {
+function getColor(diff, ratio) {
+  if (Math.abs(diff) < 0.4) {
     return "white";
   }
-
-  let ratio = Math.min(Math.abs(diff) / maxDiff, 1);
 
     if (diff > 0) {
     // 高い → 赤方向
@@ -165,17 +161,34 @@ function getColor(diff) {
     }
 }
 
-function selectFace(diff, ratio) {
-  if (diff < 0) {
-    if (ratio > 0.6) return figs[0];
-    if (ratio > 0.2) return figs[1];
-    if (ratio > 0)   return figs[2];
-  } else if (diff > 0) {
-    if (ratio > 0.6) return figs[4];
-    if (ratio > 0.2) return figs[3];
-    if (ratio > 0)   return figs[2];
+function selectFace(diff) {
+  if (diff <= -2.8) {
+    return figs[0];
   }
-  return null;
+  if (diff <= -2.0 && diff > -2.8) {
+    return figs[1];
+  }
+  if (diff <= -1.2 && diff > -2.0) {
+    return figs[2];
+  }
+  if (diff <= -0.4 && diff > -1.2) {
+    return figs[3];
+  }
+  if (diff <= 0.4 && diff > -0.4) {
+    return figs[4];
+  }
+  if (diff <= 1.2 && diff > 0.4) {
+    return figs[5];
+  }
+  if (diff <= 2.0 && diff > 1.2) {
+    return figs[6];
+  }
+  if (diff <= 2.8 && diff > 2.0) {
+    return figs[7];
+  }
+  if (diff > 2.8) {
+    return figs[8];
+  }
 }
 
 function draw(color, diff, ratio) {
@@ -189,9 +202,9 @@ function draw(color, diff, ratio) {
   ctx.globalAlpha = 0.7 + 0.3 * ratio;
 
   // 顔選択
-  let img = selectFace(diff, ratio);
+  let img = selectFace(diff);
 
-  if (img && img.complete) {
+  if (img && img.complete && img.naturalWidth > 0) {
     ctx.drawImage(img, 70, 70, 160, 160);
   }
   ctx.globalAlpha = 1.0;
@@ -204,7 +217,7 @@ function update() {
   let volume = getVolume();
 
   // ★ 無音除去（超重要）
-  if (volume < 0.01) {
+  if (volume < 0.001) {
     statusText.innerText = "無音";
     draw("gray",0,0);
     requestAnimationFrame(update);
@@ -212,14 +225,15 @@ function update() {
   }
 
   let pitch = getPitchFFT();
-  let maxDiff = 150;
+  let maxDiff = referencePitch*Math.pow(r, 3);
   if (pitch && referencePitch) {
     let smooth = smoothPitch(pitch);
 
-    let diff = smooth - referencePitch;
-    let ratio = Math.min(Math.abs(diff) / maxDiff, 1);
+    let diff = Math.log(smooth / referencePitch) / Math.log(r);
+    let ratio = Math.min( Math.abs(diff/3), 1);
+    
 
-    let color = getColor(diff);
+    let color = getColor(diff, ratio);
 
     draw(color, diff, ratio);
 
@@ -228,6 +242,8 @@ function update() {
   }
 
   requestAnimationFrame(update);
+
+  console.log("pitch:", smooth);
 }
 
 // 基準入力
@@ -250,7 +266,7 @@ document.getElementById("calibrate").onclick = async () => {
   let samples = [];
   let startTime = Date.now();
 
-  const CALIB_TIME = 1000; // 1秒
+  const CALIB_TIME = 500; // 1秒
 
   calibrateInterval = setInterval(() => {
     let p = getPitchFFT();
