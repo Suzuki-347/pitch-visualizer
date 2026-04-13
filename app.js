@@ -217,7 +217,7 @@ function update() {
   let volume = getVolume();
 
   // ★ 無音除去（超重要）
-  if (volume < 0.001) {
+  if (volume < 0.01) {
     statusText.innerText = "無音";
     draw("gray",0,0);
     requestAnimationFrame(update);
